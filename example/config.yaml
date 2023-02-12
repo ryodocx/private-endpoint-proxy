@@ -1,0 +1,17 @@
+server:
+  console:
+    enabled: true
+    listenAddr: 127.0.0.1:8080
+    pathPrefix:
+      console: "/console"
+  proxy:
+    enabled: true
+auth:
+  mode: proxy
+  proxy:
+    # https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-authentication/auth-proxy/
+    headers:
+      id: X-Forwarded-Email
+upstreams:
+  - name: upstream1 # do not change
+    url: https://example.com

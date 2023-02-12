@@ -59,8 +59,8 @@ func New(files fs.FS) (http.Handler, error) {
 	}
 
 	addHandleFunc("/livez",
-		method(http.MethodGet, http.MethodHead),
 		logging(),
+		method(http.MethodGet, http.MethodHead),
 		s.live,
 	)
 	addHandleFunc("/readyz",
@@ -68,25 +68,25 @@ func New(files fs.FS) (http.Handler, error) {
 		s.ready,
 	)
 	addHandleFunc(s.consolePrefix,
-		method(http.MethodGet),
 		logging(),
+		method(http.MethodGet),
 		s.console,
 	)
 	addHandleFunc("/api/token/add",
-		method(http.MethodPost),
 		logging(),
+		method(http.MethodPost),
 		antiCSRF(),
 		s.addToken,
 	)
 	addHandleFunc("/api/token/delete",
-		method(http.MethodPost),
 		logging(),
+		method(http.MethodPost),
 		antiCSRF(),
 		s.deleteToken,
 	)
 	addHandleFunc("/",
-		method(http.MethodGet),
 		logging(),
+		method(http.MethodGet),
 		s.proxy,
 	)
 

@@ -1,0 +1,18 @@
+<p>user info</p>
+<ul>
+  <li>user: {{ .User }}</li>
+</ul>
+
+<p>links</p>
+<ul>
+  <li><a href="add">add token</a></li>
+</ul>
+
+{{- with .Tokens }}
+<p>tokens</p>
+<ul>
+  {{- range . }}
+  <li><a href="edit">{{.Description}}({{.CreatedAt}})</a></li>
+  {{- end }}
+</ul>
+{{- end }}

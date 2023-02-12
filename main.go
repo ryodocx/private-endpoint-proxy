@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/pprof"
 
+	"github.com/ryodocx/private-endpoint-proxy/pkg/dao"
 	"github.com/ryodocx/private-endpoint-proxy/pkg/server"
 	"github.com/ryodocx/private-endpoint-proxy/pkg/util"
 )
@@ -26,10 +27,16 @@ func main() {
 		util.Fatal(err)
 	}
 
-	mux, err := server.New(f)
+	d, err := dao.New()
 	if err != nil {
 		util.Fatal(err)
 	}
 
+	mux, err := server.New(f, d)
+	if err != nil {
+		util.Fatal(err)
+	}
+
+	// TODO: graceful shutdown
 	util.Fatal(http.ListenAndServe("127.0.0.1:8080", mux))
 }

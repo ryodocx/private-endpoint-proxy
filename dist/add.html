@@ -1,0 +1,17 @@
+<form action="/api/token/add" method="post">
+  <div>
+    <label for="upstream">Select Upstream: </label>
+    <select name="upstream">
+      {{- range .Upstreams }}
+      <option value="{{.Id}}">{{.Description}}</option>
+      {{- end }}
+    </select>
+  </div>
+  <div>
+    <label for="description">Enter your description: </label>
+    <input type="text" name="description" id="description" required />
+  </div>
+  <div>
+    <input type="submit" value="Create Token" />
+  </div>
+</form>

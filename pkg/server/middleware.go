@@ -1,16 +1,9 @@
 package server
 
 import (
-	"log"
 	"net/http"
 	"net/url"
 )
-
-func logging() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		log.Println(r.Method, r.RequestURI, r.RemoteAddr, r.Header.Get("User-Agent"))
-	}
-}
 
 func method(method ...string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

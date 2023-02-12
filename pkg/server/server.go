@@ -3,6 +3,7 @@ package server
 import (
 	"html/template"
 	"io/fs"
+	"log"
 	"net/http"
 	"strings"
 
@@ -46,10 +47,14 @@ func New(files fs.FS) (http.Handler, error) {
 			pattern,
 			func(handlers ...http.HandlerFunc) http.HandlerFunc {
 				return func(w http.ResponseWriter, r *http.Request) {
-					dw := &doneWriter{ResponseWriter: w}
+					dw := &doneWriter{
+						pattern:        pattern,
+						r:              r,
+						ResponseWriter: w,
+					}
 					for _, h := range handlers {
 						h.ServeHTTP(dw, r)
-						if dw.done {
+						if dw.writeDone {
 							return
 						}
 					}
@@ -59,7 +64,6 @@ func New(files fs.FS) (http.Handler, error) {
 	}
 
 	addHandleFunc("/livez",
-		logging(),
 		method(http.MethodGet, http.MethodHead),
 		s.live,
 	)
@@ -68,24 +72,20 @@ func New(files fs.FS) (http.Handler, error) {
 		s.ready,
 	)
 	addHandleFunc(s.consolePrefix,
-		logging(),
 		method(http.MethodGet),
 		s.console,
 	)
 	addHandleFunc("/api/token/add",
-		logging(),
 		method(http.MethodPost),
 		antiCSRF(),
 		s.addToken,
 	)
 	addHandleFunc("/api/token/delete",
-		logging(),
 		method(http.MethodPost),
 		antiCSRF(),
 		s.deleteToken,
 	)
 	addHandleFunc("/",
-		logging(),
 		method(http.MethodGet),
 		s.proxy,
 	)
@@ -100,15 +100,33 @@ func (s server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // https://stackoverflow.com/a/43897364
 type doneWriter struct {
 	http.ResponseWriter
-	done bool
+	writeDone bool
+	pattern   string
+	r         *http.Request
+	logDone   bool
 }
 
 func (w *doneWriter) WriteHeader(status int) {
-	w.done = true
+	w.writeDone = true
 	w.ResponseWriter.WriteHeader(status)
+	w.logging(status)
 }
 
 func (w *doneWriter) Write(b []byte) (int, error) {
-	w.done = true
-	return w.ResponseWriter.Write(b)
+	w.writeDone = true
+	i, err := w.ResponseWriter.Write(b)
+	if err != nil {
+		w.logging(-1)
+	} else {
+		w.logging(http.StatusOK)
+	}
+	return i, err
+}
+
+func (w *doneWriter) logging(status int) {
+	if w.logDone {
+		return
+	}
+	log.Println(w.r.Method, w.r.RequestURI, "->", w.pattern, ":", status, http.StatusText(status), "from", w.r.RemoteAddr, w.r.Header.Get("User-Agent")) // TODO
+	w.logDone = true
 }

@@ -127,6 +127,6 @@ func (w *doneWriter) logging(status int) {
 	if w.logDone {
 		return
 	}
-	log.Println(w.r.Method, w.r.RequestURI, "->", w.pattern, ":", status, http.StatusText(status), "from", w.r.RemoteAddr, w.r.Header.Get("User-Agent")) // TODO
+	log.Println(w.r.Method, w.r.RequestURI, "from", w.r.RemoteAddr, w.r.Header.Get("User-Agent"), "->", w.pattern, ":", status, http.StatusText(status)) // TODO
 	w.logDone = true
 }

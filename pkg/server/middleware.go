@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 )
@@ -21,12 +22,12 @@ func antiCSRF() http.HandlerFunc {
 		ref, err := url.Parse(r.Header.Get("Referer"))
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("invalid Referer"))
+			fmt.Fprintln(w, "invalid Referer")
 			return
 		}
 		if ref.Host == "" || r.Host != ref.Host {
 			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("CSRF detected"))
+			fmt.Fprintln(w, "CSRF detected")
 			return
 		}
 	}

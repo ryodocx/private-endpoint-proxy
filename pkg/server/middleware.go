@@ -3,6 +3,7 @@ package server
 import (
 	"log"
 	"net/http"
+	"net/url"
 )
 
 func logging() http.HandlerFunc {
@@ -26,16 +27,18 @@ func antiCSRF() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fail := func() {
 			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("invalid Referer"))
+			w.Write([]byte("CSRF detected"))
 		}
 
-		referer := r.Header.Get("Referer")
-		log.Println("referer: ", referer)
-		if referer == "" {
+		ref, err := url.Parse(r.Header.Get("Referer"))
+		if err != nil {
 			fail()
 			return
 		}
 
-		// TODO: check referrer more strict
+		if r.Host != ref.Host {
+			fail()
+			return
+		}
 	}
 }

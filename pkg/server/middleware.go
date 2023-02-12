@@ -18,19 +18,15 @@ func method(method ...string) http.HandlerFunc {
 
 func antiCSRF() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fail := func() {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("CSRF detected"))
-		}
-
 		ref, err := url.Parse(r.Header.Get("Referer"))
 		if err != nil {
-			fail()
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("invalid Referer"))
 			return
 		}
-
-		if r.Host != ref.Host {
-			fail()
+		if ref.Host == "" || r.Host != ref.Host {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("CSRF detected"))
 			return
 		}
 	}

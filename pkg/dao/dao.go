@@ -7,16 +7,20 @@ import (
 )
 
 type dao struct {
-	upstreams []*interfaces.Upstream
+	config interfaces.Config
 }
 
-func New() (interfaces.Dao, error) {
-	return &dao{}, nil
+func New(
+	config interfaces.Config,
+) (interfaces.Dao, error) {
+	return &dao{
+		config: config,
+	}, nil
 }
 
 func (d dao) GetUpstreamByToken(token string) (*interfaces.Upstream, error) {
 
-	u, err := url.Parse("http://localhost:8080/livez")
+	u, err := url.Parse("https://example.com")
 	if err != nil {
 		return nil, err
 	}

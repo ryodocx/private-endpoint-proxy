@@ -27,7 +27,7 @@ func main() {
 		util.Fatal(err)
 	}
 
-	d, err := dao.New()
+	d, err := dao.New(nil)
 	if err != nil {
 		util.Fatal(err)
 	}

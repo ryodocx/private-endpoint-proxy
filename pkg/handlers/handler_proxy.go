@@ -12,7 +12,7 @@ func (s server) proxy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	token := s.regex.FindStringSubmatch(r.URL.Path)
-	if len(token) < 2 || len(token[1]) != 36 {
+	if len(token) < 2 {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
@@ -30,6 +30,7 @@ func (s server) proxy(w http.ResponseWriter, r *http.Request) {
 		Rewrite: func(r *httputil.ProxyRequest) {
 			r.SetURL(upstream.Url)
 			r.Out.URL.Path = r.In.URL.Path[37:] // trim token prefix
+			r.Out.Header.Del("Cookie")
 		},
 	}).ServeHTTP(w, r)
 }

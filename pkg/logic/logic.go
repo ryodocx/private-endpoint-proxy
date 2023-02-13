@@ -47,7 +47,13 @@ func (l *logic) GetUpstreams() ([]*model.Upstream, error) {
 }
 
 func (l *logic) GetUpstreamByToken(token string) (*model.Upstream, error) {
-	return nil, nil
+	// u, _ := url.Parse("https://example.com")
+	// u, _ := url.Parse("http://localhost:5555")
+	u, _ := url.Parse("http://localhost:8080/")
+
+	return &model.Upstream{
+		Url: u,
+	}, nil
 }
 
 func (l *logic) GetTokensByUserId(userId string) ([]*model.Token, error) {

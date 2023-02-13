@@ -30,7 +30,7 @@ func New(files fs.FS, logic logic.Logic) (http.Handler, error) {
 		templates:     map[string]*template.Template{},
 		consolePrefix: "/console/",
 		logic:         logic,
-		regex:         regexp.MustCompile("^/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(/|$)"),
+		regex:         regexp.MustCompile(`^/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(/|$|\?)`),
 	}
 
 	// load templates
@@ -76,6 +76,7 @@ func New(files fs.FS, logic logic.Logic) (http.Handler, error) {
 			func(handlers ...http.HandlerFunc) http.HandlerFunc {
 				return func(w http.ResponseWriter, r *http.Request) {
 					dw := &doneWriter{
+						s:              s,
 						pattern:        pattern,
 						r:              r,
 						ResponseWriter: w,
@@ -137,6 +138,7 @@ type doneWriter struct {
 	logDone bool
 	pattern string
 	r       *http.Request
+	s       *server
 }
 
 func (w *doneWriter) WriteHeader(status int) {
@@ -161,5 +163,9 @@ func (w *doneWriter) logging(status int) {
 		return
 	}
 	w.logDone = true
-	log.Println(w.r.Method, w.r.RequestURI, "from", w.r.RemoteAddr, w.r.Header.Get("User-Agent"), "->", w.pattern, ":", status, http.StatusText(status)) // TODO: format
+	uri := w.r.RequestURI
+	if token := w.s.regex.FindStringSubmatch(w.r.URL.Path); len(token) >= 2 {
+		uri = strings.Replace(uri, token[1], "<redacted>", 1)
+	}
+	log.Println(w.r.Method, uri, "from", w.r.RemoteAddr, w.r.Header.Get("User-Agent"), "->", w.pattern, ":", status, http.StatusText(status)) // TODO: format
 }

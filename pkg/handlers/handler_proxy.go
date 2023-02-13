@@ -26,6 +26,7 @@ func (s server) proxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// TODO: initialize at New()
 	(&httputil.ReverseProxy{
 		Rewrite: func(r *httputil.ProxyRequest) {
 			r.SetURL(upstream.Url)

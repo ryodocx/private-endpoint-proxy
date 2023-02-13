@@ -7,7 +7,7 @@ import (
 
 func (s server) proxy(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path == "/" {
-		s.redirectToConsole(w, r)
+		http.Redirect(w, r, s.consolePrefix, http.StatusFound)
 		return
 	}
 
@@ -16,7 +16,7 @@ func (s server) proxy(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	upstream, err := s.dao.GetUpstreamByToken(token[1])
+	upstream, err := s.logic.GetUpstreamByToken(token[1])
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

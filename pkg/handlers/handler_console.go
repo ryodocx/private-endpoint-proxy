@@ -6,34 +6,28 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/ryodocx/private-endpoint-proxy/pkg/interfaces"
+	"github.com/ryodocx/private-endpoint-proxy/pkg/model"
 )
-
-func (s server) redirectToConsole(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, s.consolePrefix, http.StatusTemporaryRedirect)
-}
-
-type context struct {
-	User      string
-	Tokens    []*interfaces.Token
-	Upstreams []*interfaces.Upstream
-}
 
 func (s server) console(w http.ResponseWriter, r *http.Request) {
 	// strip path prefix
 	r.URL.Path = strings.TrimPrefix(r.URL.Path, s.consolePrefix)
 
-	ctx := context{
+	ctx := struct {
+		User      string
+		Tokens    []*model.Token
+		Upstreams []*model.Upstream
+	}{
 		User: r.Header.Get("X-Forwarded-Email"),
 	}
 
-	if v, err := s.dao.GetTokens(ctx.User); err != nil {
+	if v, err := s.logic.GetTokensByUserId(ctx.User); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	} else {
 		ctx.Tokens = v
 	}
-	if v, err := s.dao.GetUpstreams(); err != nil {
+	if v, err := s.logic.GetUpstreams(); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	} else {

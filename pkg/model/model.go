@@ -1,4 +1,4 @@
-package interfaces
+package model
 
 import (
 	"net/url"
@@ -8,8 +8,8 @@ import (
 type Token struct {
 	Token       string
 	Description string
-	UpstreamId  *Upstream
-	CreatedAt   *time.Time
+	Upstream    Upstream
+	CreatedAt   time.Time
 }
 
 type Upstream struct {

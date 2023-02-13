@@ -10,8 +10,9 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/ryodocx/private-endpoint-proxy/pkg/dao"
+	"github.com/ryodocx/private-endpoint-proxy/pkg/dao/dummy"
 	"github.com/ryodocx/private-endpoint-proxy/pkg/handlers"
+	"github.com/ryodocx/private-endpoint-proxy/pkg/logic"
 )
 
 //go:embed dist/*
@@ -22,32 +23,34 @@ func main() {
 	go func() {
 		mux := http.NewServeMux()
 		mux.HandleFunc("/debug/pprof/", pprof.Index)
-		fatal(http.ListenAndServe("127.0.0.1:6060", mux))
+		ifFatal(http.ListenAndServe("127.0.0.1:6060", mux))
 	}()
 
-	d, err := dao.New(nil)
-	if err != nil {
-		fatal(err)
-	}
+	// dao
+	d, err := dummy.New()
+	ifFatal(err)
+
+	// logic
+	l, err := logic.New(d)
+	ifFatal(err)
 
 	// handlers
 	f, err := fs.Sub(files, "dist")
-	if err != nil {
-		fatal(err)
-	}
-	h, err := handlers.New(f, d)
-	if err != nil {
-		fatal(err)
-	}
+	ifFatal(err)
+	h, err := handlers.New(f, l)
+	ifFatal(err)
 
 	// TODO: graceful shutdown
-	fatal(http.ListenAndServe("127.0.0.1:8080", h))
+	ifFatal(http.ListenAndServe("127.0.0.1:8080", h))
 }
 
-func fatal(v ...any) {
+func ifFatal(err error) {
+	if err == nil {
+		return
+	}
 	fmt.Fprintln(os.Stderr, time.Now().Local())
 	pc, file, line, _ := runtime.Caller(1)
 	fmt.Fprintf(os.Stderr, "%s:%d %s()\n", file, line, runtime.FuncForPC(pc).Name())
-	fmt.Fprintln(os.Stderr, v...)
+	fmt.Fprintln(os.Stderr, err)
 	os.Exit(1)
 }

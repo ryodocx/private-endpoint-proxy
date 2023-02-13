@@ -11,7 +11,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/ryodocx/private-endpoint-proxy/pkg/interfaces"
+	"github.com/ryodocx/private-endpoint-proxy/pkg/logic"
 )
 
 type server struct {
@@ -19,17 +19,17 @@ type server struct {
 	files         http.FileSystem
 	templates     map[string]*template.Template
 	consolePrefix string
-	dao           interfaces.Dao
+	logic         logic.Logic
 	regex         *regexp.Regexp
 }
 
-func New(files fs.FS, dao interfaces.Dao) (http.Handler, error) {
+func New(files fs.FS, logic logic.Logic) (http.Handler, error) {
 	s := &server{
 		mux:           http.NewServeMux(),
 		files:         http.FS(files),
 		templates:     map[string]*template.Template{},
 		consolePrefix: "/console/",
-		dao:           dao,
+		logic:         logic,
 		regex:         regexp.MustCompile("^/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(/|$)"),
 	}
 
@@ -132,11 +132,11 @@ func (s server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // https://stackoverflow.com/a/43897364
 type doneWriter struct {
-	http.ResponseWriter
 	writeDone bool
-	pattern   string
-	r         *http.Request
-	logDone   bool
+	http.ResponseWriter
+	logDone bool
+	pattern string
+	r       *http.Request
 }
 
 func (w *doneWriter) WriteHeader(status int) {

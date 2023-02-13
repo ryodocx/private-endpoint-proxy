@@ -1,11 +1,12 @@
-package server
+package handlers
 
 import (
 	"bytes"
 	"log"
 	"net/http"
 	"strings"
-	"time"
+
+	"github.com/ryodocx/private-endpoint-proxy/pkg/interfaces"
 )
 
 func (s server) redirectToConsole(w http.ResponseWriter, r *http.Request) {
@@ -14,56 +15,29 @@ func (s server) redirectToConsole(w http.ResponseWriter, r *http.Request) {
 
 type context struct {
 	User      string
-	Tokens    []token
-	Upstreams []upstream
-}
-type token struct {
-	Token       string
-	Description string
-	Upstream    string
-	CreatedAt   time.Time
-}
-type upstream struct {
-	Description string
-	Id          string
+	Tokens    []*interfaces.Token
+	Upstreams []*interfaces.Upstream
 }
 
 func (s server) console(w http.ResponseWriter, r *http.Request) {
 	// strip path prefix
 	r.URL.Path = strings.TrimPrefix(r.URL.Path, s.consolePrefix)
 
-	data := context{
+	ctx := context{
 		User: r.Header.Get("X-Forwarded-Email"),
-		Tokens: []token{
-			{
-				Token:       "token1",
-				Description: "description1",
-				Upstream:    "upstream1",
-				CreatedAt:   time.Now().Add(-time.Hour * 666).Local(),
-			},
-			{
-				Token:       "token2",
-				Description: "description2",
-				Upstream:    "upstream2",
-				CreatedAt:   time.Now().Add(-time.Hour * 1766).Local(),
-			},
-			{
-				Token:       "token3",
-				Description: "description3",
-				Upstream:    "upstream3",
-				CreatedAt:   time.Now().Add(-time.Hour * 6).Local(),
-			},
-		},
-		Upstreams: []upstream{
-			{
-				Id:          "123",
-				Description: "upstream1",
-			},
-			{
-				Id:          "456",
-				Description: "upstream2",
-			},
-		},
+	}
+
+	if v, err := s.dao.GetTokens(ctx.User); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	} else {
+		ctx.Tokens = v
+	}
+	if v, err := s.dao.GetUpstreams(); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	} else {
+		ctx.Upstreams = v
 	}
 
 	render := func(path string) {
@@ -74,7 +48,7 @@ func (s server) console(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Add("Content-Type", "text/html; charset=utf-8")
 		var buf bytes.Buffer
-		if err := t.Execute(&buf, data); err != nil {
+		if err := t.Execute(&buf, ctx); err != nil {
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return

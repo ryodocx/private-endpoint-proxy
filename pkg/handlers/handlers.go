@@ -1,6 +1,8 @@
-package server
+package handlers
 
 import (
+	"errors"
+	"fmt"
 	"html/template"
 	"io/fs"
 	"log"
@@ -10,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/ryodocx/private-endpoint-proxy/pkg/interfaces"
-	"github.com/ryodocx/private-endpoint-proxy/pkg/util"
 )
 
 type server struct {
@@ -54,7 +55,7 @@ func New(files fs.FS, dao interfaces.Dao) (http.Handler, error) {
 	}
 	paths, err := dirwalk(files, ".")
 	if err != nil {
-		util.Fatal(err)
+		return nil, errors.Join(err, fmt.Errorf("failed at call dirwalk()"))
 	}
 	for _, p := range paths {
 		if !strings.HasSuffix(p, ".html") {
@@ -62,13 +63,14 @@ func New(files fs.FS, dao interfaces.Dao) (http.Handler, error) {
 		}
 		t, err := template.ParseFS(files, p)
 		if err != nil {
-			util.Fatal(err)
+			return nil, errors.Join(err, fmt.Errorf("failed at call dirwalk()"))
 		}
 		s.templates[p] = t
 	}
 
 	// setup handlers
-	addHandleFunc := func(pattern string, handers ...http.HandlerFunc) {
+	handleFunc := func(pattern string, handers ...http.HandlerFunc) {
+		// TODO: support sentry.io
 		s.mux.HandleFunc(
 			pattern,
 			func(handlers ...http.HandlerFunc) http.HandlerFunc {
@@ -95,29 +97,29 @@ func New(files fs.FS, dao interfaces.Dao) (http.Handler, error) {
 		)
 	}
 
-	addHandleFunc("/livez",
+	handleFunc("/livez",
 		method(http.MethodGet, http.MethodHead),
 		s.live,
 	)
-	addHandleFunc("/readyz",
+	handleFunc("/readyz",
 		method(http.MethodGet, http.MethodHead),
 		s.ready,
 	)
-	addHandleFunc(s.consolePrefix,
+	handleFunc(s.consolePrefix,
 		method(http.MethodGet),
 		s.console,
 	)
-	addHandleFunc("/api/token/add",
+	handleFunc("/api/token/add",
 		method(http.MethodPost),
 		antiCSRF(),
 		s.addToken,
 	)
-	addHandleFunc("/api/token/delete",
+	handleFunc("/api/token/delete",
 		method(http.MethodPost),
 		antiCSRF(),
 		s.deleteToken,
 	)
-	addHandleFunc("/",
+	handleFunc("/",
 		s.proxy,
 	)
 
@@ -158,6 +160,6 @@ func (w *doneWriter) logging(status int) {
 	if w.logDone {
 		return
 	}
-	log.Println(w.r.Method, w.r.RequestURI, "from", w.r.RemoteAddr, w.r.Header.Get("User-Agent"), "->", w.pattern, ":", status, http.StatusText(status)) // TODO
 	w.logDone = true
+	log.Println(w.r.Method, w.r.RequestURI, "from", w.r.RemoteAddr, w.r.Header.Get("User-Agent"), "->", w.pattern, ":", status, http.StatusText(status)) // TODO: format
 }

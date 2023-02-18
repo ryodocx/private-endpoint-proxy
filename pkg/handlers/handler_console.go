@@ -13,11 +13,7 @@ func (s server) console(w http.ResponseWriter, r *http.Request) {
 	// strip path prefix
 	r.URL.Path = strings.TrimPrefix(r.URL.Path, s.consolePrefix)
 
-	ctx := struct {
-		User      string
-		Tokens    []*model.Token
-		Upstreams []*model.Upstream
-	}{
+	ctx := model.Context{
 		User: r.Header.Get("X-Forwarded-Email"),
 	}
 

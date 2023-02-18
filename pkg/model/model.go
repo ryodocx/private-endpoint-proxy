@@ -5,6 +5,12 @@ import (
 	"time"
 )
 
+type Context struct {
+	User      string
+	Tokens    []*Token
+	Upstreams []*Upstream
+}
+
 type Token struct {
 	Token       string
 	Description string

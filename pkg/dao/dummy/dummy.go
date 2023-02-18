@@ -22,8 +22,14 @@ func (d *dummy) GetTokensByUserId(userId string) ([]*dao.Token, error) {
 		},
 		{
 			Token:       "Token2",
-			Description: "Description1",
+			Description: "Description2",
 			UpstreamId:  "Upstream2",
+			CreatedAt:   time.Now().Add(-time.Hour * 400),
+		},
+		{
+			Token:       "Token3",
+			Description: "Description3",
+			UpstreamId:  "Upstream3",
 			CreatedAt:   time.Now().Add(-time.Hour * 400),
 		},
 	}, nil

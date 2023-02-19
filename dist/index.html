@@ -1,0 +1,27 @@
+<p>user info</p>
+<ul>
+  <li>user: {{ .User }}</li>
+</ul>
+
+<p>links</p>
+<ul>
+  <li><a href="add">add token</a></li>
+</ul>
+
+{{- with .Tokens }}
+<p>tokens</p>
+<ul>
+  {{- range . }}
+  <li><a href="detail?key={{.Token | sha256sum }}">{{.Description}}({{.CreatedAt.Format "2006/01/02 15:04:05 -0700"}})</a></li>
+  {{- end }}
+</ul>
+{{- end }}
+
+{{- with .Upstreams }}
+<p>upstremas</p>
+<ul>
+  {{- range . }}
+  <li>{{ .Description }}</li>
+  {{- end }}
+</ul>
+{{- end }}

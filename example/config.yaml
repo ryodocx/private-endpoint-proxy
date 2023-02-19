@@ -2,7 +2,7 @@ server:
   listenAddr: 127.0.0.1:8080
 database:
   sqlite:
-    filepath: data.sqlite
+    filepath: tmp/data.sqlite
 upstreams:
   - id: 9c5afe1c-5703-43a1-8fba-cbdcb82f3efd
     description: test1

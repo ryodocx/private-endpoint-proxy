@@ -2,8 +2,10 @@ package handlers
 
 import (
 	"bytes"
+	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/ryodocx/private-endpoint-proxy/pkg/model"
@@ -13,21 +15,30 @@ func (s server) console(w http.ResponseWriter, r *http.Request) {
 	// strip path prefix
 	r.URL.Path = strings.TrimPrefix(r.URL.Path, s.consolePrefix)
 
+	// context
+	upstreams, err := s.config.Upstreams()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	ctx := model.Context{
-		User: r.Header.Get("X-Forwarded-Email"),
+		User:      r.Header.Get("X-Forwarded-Email"),
+		Upstreams: upstreams,
 	}
+	tokens, err := s.dao.GetTokensByUserId(ctx.User)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	for i, t := range tokens {
+		u, _ := url.Parse(fmt.Sprintf("https://example.com/%d", i))
 
-	if v, err := s.logic.GetTokensByUserId(ctx.User); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	} else {
-		ctx.Tokens = v
-	}
-	if v, err := s.logic.GetUpstreams(); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	} else {
-		ctx.Upstreams = v
+		upstream := model.Upstream{
+			Id:          fmt.Sprintf("upstream%d", i),
+			Description: fmt.Sprintf("Description%d", i),
+			Url:         u,
+		}
+		ctx.Tokens = append(ctx.Tokens, t.ToModel(upstream))
 	}
 
 	render := func(path string) {
@@ -61,6 +72,7 @@ func (s server) console(w http.ResponseWriter, r *http.Request) {
 
 	// templates
 	render(r.URL.Path + ".html")
+	return
 }
 
 func (s server) addToken(w http.ResponseWriter, r *http.Request) {
@@ -68,8 +80,6 @@ func (s server) addToken(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-
-	// TODO: anti CSRF
 
 	r.ParseForm()
 	log.Println(r.PostForm.Encode())
@@ -82,8 +92,6 @@ func (s server) deleteToken(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-
-	// TODO: anti CSRF
 
 	r.ParseForm()
 	log.Println(r.PostForm.Encode())

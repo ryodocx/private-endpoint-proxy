@@ -8,7 +8,7 @@ import (
 type Context struct {
 	User      string
 	Tokens    []*Token
-	Upstreams []*Upstream
+	Upstreams map[string]*Upstream
 }
 
 type Token struct {

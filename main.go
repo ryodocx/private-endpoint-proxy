@@ -10,9 +10,9 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/ryodocx/private-endpoint-proxy/pkg/config"
 	"github.com/ryodocx/private-endpoint-proxy/pkg/dao/dummy"
 	"github.com/ryodocx/private-endpoint-proxy/pkg/handlers"
-	"github.com/ryodocx/private-endpoint-proxy/pkg/logic"
 )
 
 //go:embed dist/*
@@ -26,18 +26,19 @@ func main() {
 		ifFatal(http.ListenAndServe("127.0.0.1:6060", mux))
 	}()
 
-	// dao
-	d, err := dummy.New()
+	// config
+	c, err := config.New("example/config.yaml")
 	ifFatal(err)
 
-	// logic
-	l, err := logic.New(d)
+	// dao
+	d, err := dummy.New()
+	// d, err := sqlite.New("tmp.db")
 	ifFatal(err)
 
 	// handlers
 	f, err := fs.Sub(files, "dist")
 	ifFatal(err)
-	h, err := handlers.New(f, l)
+	h, err := handlers.New(c, f, d)
 	ifFatal(err)
 
 	// TODO: graceful shutdown

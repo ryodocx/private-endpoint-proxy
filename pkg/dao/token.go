@@ -22,3 +22,13 @@ func (t Token) ToModel(upstream model.Upstream) *model.Token {
 		CreatedAt:   t.CreatedAt,
 	}
 }
+
+func NewToken(userId string, token model.Token) Token {
+	return Token{
+		UserId:      userId,
+		Token:       token.Token,
+		Description: token.Description,
+		UpstreamId:  token.Upstream.Id,
+		CreatedAt:   time.Now(),
+	}
+}

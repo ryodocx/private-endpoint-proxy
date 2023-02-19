@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"net/http/httputil"
+	"net/url"
 )
 
 func (s server) proxy(w http.ResponseWriter, r *http.Request) {
@@ -11,25 +12,29 @@ func (s server) proxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token := s.regex.FindStringSubmatch(r.URL.Path)
+	token := s.proxyPathRegex.FindStringSubmatch(r.URL.Path)
 	if len(token) < 2 {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	upstream, err := s.logic.GetUpstreamByToken(token[1])
+
+	upstreamId, found, err := s.dao.GetUpstreamIdByToken(token[1])
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	if upstream == nil {
+	if !found {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	// TODO: initialize at New()
+	// TODO
+	_ = upstreamId
+	upstream, _ := url.Parse("http://localhost:5555/")
+
 	(&httputil.ReverseProxy{
 		Rewrite: func(r *httputil.ProxyRequest) {
-			r.SetURL(upstream.Url)
+			r.SetURL(upstream)
 			r.Out.URL.Path = r.In.URL.Path[37:] // trim token prefix
 			r.Out.Header.Del("Cookie")
 		},

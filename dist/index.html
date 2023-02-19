@@ -12,7 +12,16 @@
 <p>tokens</p>
 <ul>
   {{- range . }}
-  <li><a href="edit">{{.Description}}({{.CreatedAt}})</a></li>
+  <li><a href="delete/{{.Token}}">{{.Description}}({{.CreatedAt.Format "2006/01/02 15:04:05 -0700"}})</a></li>
+  {{- end }}
+</ul>
+{{- end }}
+
+{{- with .Upstreams }}
+<p>upstremas</p>
+<ul>
+  {{- range . }}
+  <li>{{.Id}}({{ .Description }})</li>
   {{- end }}
 </ul>
 {{- end }}

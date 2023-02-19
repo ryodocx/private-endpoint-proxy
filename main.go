@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"flag"
 	"fmt"
 	"io/fs"
 	"net/http"
@@ -10,9 +11,9 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/ryodocx/private-endpoint-proxy/pkg/config"
-	"github.com/ryodocx/private-endpoint-proxy/pkg/dao/dummy"
+	"github.com/ryodocx/private-endpoint-proxy/pkg/dao/sqlite"
 	"github.com/ryodocx/private-endpoint-proxy/pkg/handlers"
+	"github.com/ryodocx/private-endpoint-proxy/pkg/upstream/static"
 )
 
 //go:embed dist/*
@@ -30,6 +31,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	// flag
+	var configPath string
+	flag.StringVar(&configPath, "c", "config.yaml", "config path")
+	flag.Parse()
+
+	// config
+	c, err := loadConfig(configPath)
+	ifFatal(err)
+
 	// pprof
 	go func() {
 		mux := http.NewServeMux()
@@ -37,21 +47,28 @@ func main() {
 		ifFatal(http.ListenAndServe("127.0.0.1:6060", mux))
 	}()
 
-	// config
-	c, err := config.New("example/config.yaml")
+	// upstream provider
+	u, err := static.New(
+		func() (id, description, upstreamUrl []string) {
+			for _, u := range c.Upstreams {
+				id = append(id, u.Id)
+				description = append(description, u.Description)
+				upstreamUrl = append(upstreamUrl, u.URL)
+			}
+			return id, description, upstreamUrl
+		}())
 	ifFatal(err)
 
 	// dao
-	d, err := dummy.New()
-	// d, err := sqlite.New("tmp.db")
+	d, err := sqlite.New(c.Database.SQLite.Filepath)
 	ifFatal(err)
 
 	// handlers
 	f, err := fs.Sub(files, "dist")
 	ifFatal(err)
-	h, err := handlers.New(c, f, d)
+	h, err := handlers.New(f, u, d)
 	ifFatal(err)
 
 	// TODO: graceful shutdown
-	ifFatal(http.ListenAndServe("127.0.0.1:8080", h))
+	ifFatal(http.ListenAndServe(c.Server.ListenAddr, h))
 }

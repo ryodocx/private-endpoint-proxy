@@ -1,17 +1,9 @@
 server:
-  console:
-    enabled: true
-    listenAddr: 127.0.0.1:8080
-    pathPrefix:
-      console: "/console"
-  proxy:
-    enabled: true
-auth:
-  mode: proxy
-  proxy:
-    # https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-authentication/auth-proxy/
-    headers:
-      id: X-Forwarded-Email
+  listenAddr: 127.0.0.1:8080
+database:
+  sqlite:
+    filepath: data.sqlite
 upstreams:
-  - name: upstream1 # do not change
-    url: https://example.com
+  - id: 9c5afe1c-5703-43a1-8fba-cbdcb82f3efd
+    description: test1
+    url: http://localhost:8080/livez

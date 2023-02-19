@@ -1,0 +1,28 @@
+{{- range .Tokens }}
+{{- if eq (.Token | sha256sum) ($.Query.Get "key")}}
+<p>Token detail</p>
+<ul>
+  <li>Token: {{regexReplaceAll "^([0-9a-f]{8})-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}" .Token "${1}-xxxx-xxxx-xxxx-xxxxxxxxxxxx"}}</li>
+  <li>Description: {{.Description}}</li>
+  <li>CreatedAt: {{.CreatedAt.Format "2006/01/02 15:04:05 -0700"}}</li>
+  <li>Upstream: {{.Upstream.Description}}</li>
+  <li>Private Endpoint: <button id="copy">Copy to Clipboard</button></li>
+  <li>
+    <form action="/api/token/delete" method="post">
+      <label>Revoke Token: </label>
+      <input type="hidden" name="token" value="{{.Token}}" />
+      <input type="checkbox" required>
+      <input type="submit" value="Revoke" />
+    </form>
+  </li>
+</li>
+</ul>
+
+<script type="text/javascript">
+document.getElementById('copy').addEventListener('click', async () => {
+  await navigator.clipboard.writeText(location.protocol + "//" + location.host + "/{{.Token}}");
+});
+</script>
+
+{{- end }}
+{{- end }}

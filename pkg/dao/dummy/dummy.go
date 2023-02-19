@@ -12,6 +12,10 @@ func New() (dao.Dao, error) {
 	return &dummy{}, nil
 }
 
+func (d *dummy) Ping() error {
+	return nil
+}
+
 func (d *dummy) GetTokensByUserId(userId string) ([]*dao.Token, error) {
 	return []*dao.Token{
 		{

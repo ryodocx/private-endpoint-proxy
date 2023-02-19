@@ -11,8 +11,8 @@ import (
 	"strings"
 
 	"github.com/Masterminds/sprig/v3"
-	"github.com/ryodocx/private-endpoint-proxy/pkg/config"
 	"github.com/ryodocx/private-endpoint-proxy/pkg/dao"
+	"github.com/ryodocx/private-endpoint-proxy/pkg/upstream"
 )
 
 type server struct {
@@ -21,7 +21,7 @@ type server struct {
 	templates      map[string]*template.Template
 	consolePrefix  string
 	proxyPathRegex *regexp.Regexp
-	config         config.Config
+	upstream       upstream.UpstreamProvider
 	dao            dao.Dao
 }
 
@@ -29,14 +29,14 @@ func (s server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.mux.ServeHTTP(w, r)
 }
 
-func New(config config.Config, files fs.FS, d dao.Dao) (http.Handler, error) {
+func New(files fs.FS, upstream upstream.UpstreamProvider, d dao.Dao) (http.Handler, error) {
 	s := &server{
 		mux:            http.NewServeMux(),
 		files:          http.FS(files),
 		templates:      map[string]*template.Template{},
 		consolePrefix:  "/console/",
 		proxyPathRegex: regexp.MustCompile(`^/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(/|$|\?)`),
-		config:         config,
+		upstream:       upstream,
 		dao:            d,
 	}
 

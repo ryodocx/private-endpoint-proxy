@@ -7,7 +7,10 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
+	"github.com/google/uuid"
+	"github.com/ryodocx/private-endpoint-proxy/pkg/dao"
 	"github.com/ryodocx/private-endpoint-proxy/pkg/model"
 )
 
@@ -16,14 +19,15 @@ func (s server) console(w http.ResponseWriter, r *http.Request) {
 	r.URL.Path = strings.TrimPrefix(r.URL.Path, s.consolePrefix)
 
 	// context
-	upstreams, err := s.config.Upstreams()
+	u, err := s.upstream.Upstreams()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	ctx := model.Context{
 		User:      r.Header.Get("X-Forwarded-Email"),
-		Upstreams: upstreams,
+		Upstreams: u,
+		Query:     r.URL.Query(),
 	}
 	tokens, err := s.dao.GetTokensByUserId(ctx.User)
 	if err != nil {
@@ -76,25 +80,41 @@ func (s server) console(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s server) addToken(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusNotFound)
+	tokens, err := s.dao.GetTokensByUserId(r.Header.Get("X-Forwarded-Email"))
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if len(tokens) > 10 {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintln(w, "you owned too many tokens")
 		return
 	}
 
 	r.ParseForm()
-	log.Println(r.PostForm.Encode())
+
+	if err := s.dao.CreateToken(dao.Token{
+		UserId:      r.Header.Get("X-Forwarded-Email"),
+		Token:       uuid.NewString(),
+		Description: r.PostFormValue("description"),
+		UpstreamId:  r.PostFormValue("upstream"),
+		CreatedAt:   time.Now(),
+	}); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
 	http.Redirect(w, r, s.consolePrefix, http.StatusFound)
 }
 
 func (s server) deleteToken(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusNotFound)
+	r.ParseForm()
+
+	if err := s.dao.DeleteToken(r.PostFormValue("token")); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintln(w, "internal error")
 		return
 	}
-
-	r.ParseForm()
-	log.Println(r.PostForm.Encode())
 
 	http.Redirect(w, r, s.consolePrefix, http.StatusFound)
 }

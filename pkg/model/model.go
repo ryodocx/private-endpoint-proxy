@@ -9,6 +9,7 @@ type Context struct {
 	User      string
 	Tokens    []*Token
 	Upstreams map[string]*Upstream
+	Query     url.Values
 }
 
 type Token struct {

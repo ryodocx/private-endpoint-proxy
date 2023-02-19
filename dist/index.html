@@ -12,7 +12,7 @@
 <p>tokens</p>
 <ul>
   {{- range . }}
-  <li><a href="delete/{{.Token}}">{{.Description}}({{.CreatedAt.Format "2006/01/02 15:04:05 -0700"}})</a></li>
+  <li><a href="detail?key={{.Token | sha256sum }}">{{.Description}}({{.CreatedAt.Format "2006/01/02 15:04:05 -0700"}})</a></li>
   {{- end }}
 </ul>
 {{- end }}
@@ -21,7 +21,7 @@
 <p>upstremas</p>
 <ul>
   {{- range . }}
-  <li>{{.Id}}({{ .Description }})</li>
+  <li>{{ .Description }}</li>
   {{- end }}
 </ul>
 {{- end }}

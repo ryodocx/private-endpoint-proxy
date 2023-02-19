@@ -1,79 +1,141 @@
 package sqlite
 
 import (
-	"database/sql"
-	"fmt"
-	"time"
-
-	_ "modernc.org/sqlite"
+	"log"
 
 	"github.com/jmoiron/sqlx"
+	_ "modernc.org/sqlite"
+
 	"github.com/ryodocx/private-endpoint-proxy/pkg/dao"
 )
 
 type sqlite struct {
-	db *sql.DB
+	db                       *sqlx.DB
+	stmtCreate               *sqlx.NamedStmt
+	stmtGetTokensByUserId    *sqlx.Stmt
+	stmtGetUpstreamIdByToken *sqlx.Stmt
+	stmtDeleteToken          *sqlx.Stmt
 }
 
 func New(filepath string) (dao.Dao, error) {
-
 	db, err := sqlx.Open("sqlite", filepath)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(db.Exec(`
-  CREATE TABLE IF NOT EXISTS tokens(
-    token       INTEGER PRIMARY KEY AUTOINCREMENT,
-    name        TEXT
-  );
-  INSERT INTO test (name) VALUES('aaa');
-  INSERT INTO test (name) VALUES('aaa');
-  INSERT INTO test (name) VALUES('bbb');
-  INSERT INTO test (name) VALUES('aaa');
-  `))
 
-	// db.Get()
+	if err := db.Ping(); err != nil {
+		return nil, err
+	}
+
+	if _, err := db.Exec(`
+    CREATE TABLE IF NOT EXISTS tokens(
+        token       TEXT PRIMARY KEY,
+        user_id     TEXT NOT NULL,
+        upstream_id TEXT NOT NULL,
+        description TEXT NOT NULL,
+        created_at  DATETIME NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS tokens_user_id ON tokens(user_id);
+    CREATE INDEX IF NOT EXISTS tokens_upstream_id ON tokens(upstream_id);
+    `); err != nil {
+		return nil, err
+	}
+
+	stmtCreate, err := db.PrepareNamed(`
+    INSERT INTO tokens (
+      token,
+      user_id,
+      upstream_id,
+      description,
+      created_at
+    )
+    VALUES (
+      :token,
+      :user_id,
+      :upstream_id,
+      :description,
+      :created_at
+    );
+    `)
+	if err != nil {
+		return nil, err
+	}
+
+	stmtGetTokensByUserId, err := db.Preparex(`
+    SELECT
+      token,
+      user_id,
+      upstream_id,
+      description,
+      created_at
+    FROM tokens
+    WHERE user_id = $1;
+    `)
+	if err != nil {
+		return nil, err
+	}
+
+	stmtGetUpstreamIdByToken, err := db.Preparex(`
+    SELECT upstream_id
+    FROM tokens
+    WHERE token = $1;
+    `)
+	if err != nil {
+		return nil, err
+	}
+
+	stmtDeleteToken, err := db.Preparex(`
+    DELETE
+    FROM tokens
+    WHERE token = $1;
+    `)
+	if err != nil {
+		return nil, err
+	}
 
 	return &sqlite{
-		db: db.DB,
+		db:                       db,
+		stmtCreate:               stmtCreate,
+		stmtGetTokensByUserId:    stmtGetTokensByUserId,
+		stmtGetUpstreamIdByToken: stmtGetUpstreamIdByToken,
+		stmtDeleteToken:          stmtDeleteToken,
 	}, nil
 }
 
-func (v *sqlite) GetTokensByUserId(userId string) ([]*dao.Token, error) {
-	return []*dao.Token{
-		{
-			Token:       "Token1",
-			Description: "Description1",
-			UpstreamId:  "Upstream1",
-			CreatedAt:   time.Now().Add(-time.Hour * 400),
-		},
-		{
-			Token:       "Token2",
-			Description: "Description2",
-			UpstreamId:  "Upstream2",
-			CreatedAt:   time.Now().Add(-time.Hour * 400),
-		},
-		{
-			Token:       "Token3",
-			Description: "Description3",
-			UpstreamId:  "Upstream3",
-			CreatedAt:   time.Now().Add(-time.Hour * 400),
-		},
-	}, nil
+func (v *sqlite) Ping() error {
+	return v.db.Ping()
+}
+
+func (v *sqlite) GetTokensByUserId(userId string) (tokens []*dao.Token, err error) {
+	err = v.stmtGetTokensByUserId.Select(&tokens, userId)
+	return
 }
 
 func (v *sqlite) GetUpstreamIdByToken(token string) (upstreamId string, ok bool, err error) {
-	return "upstream1", true, nil
+	rows, err := v.stmtGetUpstreamIdByToken.Queryx(token)
+	if err != nil {
+		return "", false, err
+	}
+	defer rows.Close()
+	for {
+		if !rows.Next() {
+			break
+		}
+		rows.Scan(&upstreamId)
+	}
+	if upstreamId != "" {
+		ok = true
+	}
+	return
 }
 
 func (v *sqlite) CreateToken(token dao.Token) error {
-	return nil
+	_, err := v.stmtCreate.Exec(token)
+	return err
 }
 
 func (v *sqlite) DeleteToken(token string) error {
-	return nil
-}
-
-func (v *sqlite) MigrationUpstreamId(oldId, newId string) error {
-	return nil
+	_, err := v.stmtDeleteToken.Exec(token)
+	log.Println(err)
+	return err
 }

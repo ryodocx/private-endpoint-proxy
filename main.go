@@ -19,6 +19,17 @@ import (
 var files embed.FS
 
 func main() {
+	ifFatal := func(err error) {
+		if err == nil {
+			return
+		}
+		fmt.Fprintln(os.Stderr, time.Now().Local())
+		pc, file, line, _ := runtime.Caller(1)
+		fmt.Fprintf(os.Stderr, "%s:%d %s()\n", file, line, runtime.FuncForPC(pc).Name())
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
 	// pprof
 	go func() {
 		mux := http.NewServeMux()
@@ -43,15 +54,4 @@ func main() {
 
 	// TODO: graceful shutdown
 	ifFatal(http.ListenAndServe("127.0.0.1:8080", h))
-}
-
-func ifFatal(err error) {
-	if err == nil {
-		return
-	}
-	fmt.Fprintln(os.Stderr, time.Now().Local())
-	pc, file, line, _ := runtime.Caller(1)
-	fmt.Fprintf(os.Stderr, "%s:%d %s()\n", file, line, runtime.FuncForPC(pc).Name())
-	fmt.Fprintln(os.Stderr, err)
-	os.Exit(1)
 }

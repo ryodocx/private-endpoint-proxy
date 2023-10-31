@@ -7,7 +7,7 @@ require (
 	github.com/goccy/go-yaml v1.11.2
 	github.com/google/uuid v1.4.0
 	github.com/jmoiron/sqlx v1.3.5
-	modernc.org/sqlite v1.25.0
+	modernc.org/sqlite v1.26.0
 )
 
 require (

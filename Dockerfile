@@ -6,7 +6,7 @@ RUN go mod download
 COPY . .
 RUN go install
 
-FROM alpine:3.18.4
+FROM alpine:3.18.5
 COPY --from=0 /go/bin/private-endpoint-proxy /usr/local/bin/
 COPY ./example/config.yaml /var/config.yaml
 CMD [ "private-endpoint-proxy", "-c", "/var/config.yaml" ]
